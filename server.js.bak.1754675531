@@ -9,37 +9,6 @@ const RATE=new Map(); function okRate(ip){const now=Date.now(),w=5*60*1000; if(!
 
 const page = `<!doctype html><meta charset="utf-8"><title>Свадьба Кармановых</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600&display=swap');
-
-:root { --rose:#F6DDE3; --sage:#C9D7C2; --ink:#2B2B2B; }
-
-* { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-h1,h2,.brand { font-family: "Playfair Display", serif; }
-
-body { color: var(--ink); }
-
-/* Фон-герой: ваше фото + нежный градиент */
-
-/* Карточки/контейнеры повоздушнее */
-.container { background: rgba(255,255,255,.88); border:1px solid #0001; border-radius:24px;
-  box-shadow:0 10px 30px #0000000d; }
-
-/* Заголовок по центру и крупнее */
-h1 { text-align:center; font-size:48px; line-height:1.15; margin:8px 0 18px; }
-
-/* Дата-«чипсы», кнопки и инпуты */
-.badge,.date-chip { background:var(--rose); color:#5a3c44; border-radius:999px; padding:8px 14px; font-weight:600; display:inline-block; }
-.btn { background:var(--sage); border:0; padding:12px 18px; border-radius:12px; font-weight:700; cursor:pointer; transition:.2s transform; }
-.btn:hover { transform: translateY(-1px); }
-
-.card { background:#fff; border:1px solid #0001; border-radius:16px; padding:16px; box-shadow:0 6px 16px #0000000a; }
-input,textarea,select { border-radius:12px; border:1px solid #0003; padding:10px 12px; }
-
-/* Счётчик времени — аккуратные «плиточки» */
-.countdown .cell { background:#fff; border:1px solid #0001; border-radius:16px; padding:14px 10px; min-width:120px; text-align:center; }
-
-.footer { opacity:.85; }
-.container{ background: rgba(255,255,255,.92); }
 body{font-family:system-ui;background:#F6F4F2;color:#2B2B2B;margin:0}
 .w{max-width:960px;margin:0 auto;padding:24px}
 .nav{display:flex;gap:12px;align-items:center;margin-bottom:8px}
@@ -57,7 +26,7 @@ input,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid 
 .kit{display:grid;gap:16px;grid-template-columns:1fr 1fr}@media(max-width:900px){.kit{grid-template-columns:1fr}}
 .kbtn{display:inline-block;background:#c9d7c2;border:1px solid #0002;border-radius:10px;padding:10px 14px;text-decoration:none;color:inherit;font-weight:700}
 .note{opacity:.75}
-</style><link rel="stylesheet" href="/theme.css?v=3">
+</style>
 <div class="w">
   <div class="nav">
     <span class="pill">Свадьба Кармановых</span>

@@ -1,0 +1,35 @@
+:root{ --rose:#F6DDE3; --sage:#C9D7C2; --ink:#2B2B2B; }
+
+body{ color:var(--ink); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif; margin:0; background:#fff; }
+
+/* СТАРЫЙ герой скрываем, чтобы фон не мешал */
+.hero, .hero::before, .hero::after, .img-wrap{ display:none !important; }
+
+/* НОВЫЙ split hero */
+.hero-clean{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:60px 5%; gap:50px; flex-wrap:wrap;
+}
+.hero-text{ flex:1 1 400px; }
+.hero-text h1{ font-size:2.8rem; margin:0 0 20px; color:var(--ink); }
+.hero-text .date{ font-size:1.2rem; color:#555; margin-bottom:24px; }
+.hero-text .btn{
+  background:var(--rose); border:none; padding:12px 20px;
+  border-radius:12px; font-weight:700; cursor:pointer;
+}
+.hero-text .btn:hover{ filter:brightness(.96); }
+
+.hero-photo{ flex:1 1 380px; }
+.hero-photo img{
+  width:100%; height:auto; border-radius:20px;
+  box-shadow:0 12px 25px rgba(0,0,0,.1); object-fit:cover;
+}
+
+/* Карточки */
+.card{ background:#fff; border:1px solid #0001; border-radius:16px; padding:16px; box-shadow:0 8px 20px #00000012; }
+
+/* Адаптив */
+@media(max-width:768px){
+  .hero-clean{ flex-direction:column; text-align:center; padding:30px 20px; }
+  .hero-text h1{ font-size:2.2rem; }
+}
