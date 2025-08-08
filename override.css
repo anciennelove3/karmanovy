@@ -1,0 +1,11 @@
+/* убиваем розовый слой */
+body::before {
+  content: none !important;
+  display: none !important;
+  background: none !important;
+}
+
+/* убираем старое фон-фото */
+.hero {
+  display: none !important;
+}

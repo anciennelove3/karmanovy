@@ -1,0 +1,338 @@
+const http=require('http'); const fs=require('fs'); const path=require('path'); const {Pool}=require('pg');
+const pool=new Pool({host:process.env.DB_HOST||'127.0.0.1',user:process.env.DB_USER||'wedding',password:process.env.DB_PASS||'',database:process.env.DB_NAME||'wedding',port:5432});
+
+// дата события
+const WEDDING_TS = Date.parse('2026-07-04T15:00:00+03:00');
+
+// rate-limit
+const RATE=new Map(); function okRate(ip){const now=Date.now(),w=5*60*1000; if(!RATE.has(ip)) RATE.set(ip,[]); const a=RATE.get(ip).filter(t=>now-t<w); a.push(now); RATE.set(ip,a); return a.length<=3;}
+
+const page = `<!doctype html><meta charset="utf-8"><title>Свадьба Кармановых</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600&display=swap');
+
+:root { --rose:#F6DDE3; --sage:#C9D7C2; --ink:#2B2B2B; }
+
+* { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+h1,h2,.brand { font-family: "Playfair Display", serif; }
+
+body { color: var(--ink); }
+
+/* Фон-герой: ваше фото + нежный градиент */
+body::before {
+  content:""; position:fixed; inset:0; z-index:-1;
+  background:
+    linear-gradient(180deg, rgba(246,221,227,.75) 0%, rgba(201,215,194,.55) 100%),
+    url('/hero.jpg') center/cover no-repeat;
+  filter:saturate(105%);
+}
+
+/* Карточки/контейнеры повоздушнее */
+.container { background: rgba(255,255,255,.88); border:1px solid #0001; border-radius:24px;
+  box-shadow:0 10px 30px #0000000d; }
+
+/* Заголовок по центру и крупнее */
+h1 { text-align:center; font-size:48px; line-height:1.15; margin:8px 0 18px; }
+
+/* Дата-«чипсы», кнопки и инпуты */
+.badge,.date-chip { background:var(--rose); color:#5a3c44; border-radius:999px; padding:8px 14px; font-weight:600; display:inline-block; }
+.btn { background:var(--sage); border:0; padding:12px 18px; border-radius:12px; font-weight:700; cursor:pointer; transition:.2s transform; }
+.btn:hover { transform: translateY(-1px); }
+
+.card { background:#fff; border:1px solid #0001; border-radius:16px; padding:16px; box-shadow:0 6px 16px #0000000a; }
+input,textarea,select { border-radius:12px; border:1px solid #0003; padding:10px 12px; }
+
+/* Счётчик времени — аккуратные «плиточки» */
+.countdown .cell { background:#fff; border:1px solid #0001; border-radius:16px; padding:14px 10px; min-width:120px; text-align:center; }
+
+.footer { opacity:.85; }
+/* === Hero: фуллвью с фоном и центрированным заголовком === */
+.hero{
+  position:relative;
+  display:flex; align-items:center; justify-content:center;
+  min-height:60vh; padding:80px 24px; border-radius:24px;
+  overflow:hidden; margin-bottom:28px;
+  background:transparent;
+}
+/* Фото на фоне */
+.hero::before{
+  content:""; position:absolute; inset:0;
+  background: url('/hero.jpg') center/cover no-repeat;
+  filter:brightness(.9) saturate(105%);
+}
+/* Мягкий градиент сверху для читаемости текста */
+.hero::after{
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(246,221,227,.55) 0%, rgba(0,0,0,.15) 50%, rgba(201,215,194,.35) 100%);
+}
+/* Контент поверх */
+.hero > *{ position:relative; z-index:1; }
+
+/* Центровка заголовка и подзаголовков */
+.hero h1{
+  text-align:center;
+  color:#fff; text-shadow:0 3px 20px rgba(0,0,0,.45);
+  font-size:56px; line-height:1.1; margin:6px 0 14px;
+}
+@media (max-width:800px){ .hero{min-height:48vh} .hero h1{font-size:40px} }
+
+/* Чип с датой поверх фото */
+.hero .date-chip{ background:rgba(255,255,255,.9); color:#5a3c44; }
+
+/* Прячем правую картинку в старом лэйауте */
+.hero .img-wrap{ display:none !important; }
+
+/* Счётчик – полупрозрачные плиточки поверх фото */
+.countdown .cell{
+  background: rgba(255,255,255,.9);
+  border:1px solid #fff6; backdrop-filter: blur(2px);
+}
+
+/* Карточки ниже героя – светлые и воздушные */
+.container{ background: rgba(255,255,255,.92); }
+body{font-family:system-ui;background:#F6F4F2;color:#2B2B2B;margin:0}
+.w{max-width:960px;margin:0 auto;padding:24px}
+.nav{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.pill{display:inline-block;background:#E8EFE4;border:1px solid #0001;border-radius:999px;padding:6px 12px;font-weight:700;text-decoration:none;color:inherit}
+.grid{display:grid;gap:16px;grid-template-columns:1.3fr 1fr}@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid #0001;border-radius:16px;padding:16px}
+input,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #0003}
+.btn{background:#C9D7C2;border:0;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer}
+.badge{display:inline-block;background:#F7DDE2;padding:6px 10px;border-radius:999px;font-weight:700}
+.count{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.cell{background:#fff;border:1px solid #0001;border-radius:12px;padding:10px}
+.hi{display:none;background:#E7F6EA;border:1px solid #BFE3C4;border-radius:12px;padding:10px 12px;margin:12px 0;font-weight:700}
+.hero{border-radius:16px;overflow:hidden;border:1px solid #0001}
+.ok{color:#317031;font-weight:700;margin-top:8px}
+.kit{display:grid;gap:16px;grid-template-columns:1fr 1fr}@media(max-width:900px){.kit{grid-template-columns:1fr}}
+.kbtn{display:inline-block;background:#c9d7c2;border:1px solid #0002;border-radius:10px;padding:10px 14px;text-decoration:none;color:inherit;font-weight:700}
+.note{opacity:.75}
+</style><link rel="stylesheet" href="/theme.css?v=3">
+<div class="w">
+  <div class="nav">
+    <span class="pill">Свадьба Кармановых</span>
+    <a class="pill" href="/lk">Личный кабинет</a>
+  </div>
+
+  <div class="grid">
+    <div>
+      <h1>Александр & Елена — Минеральные Воды</h1>
+      <p><span class="badge">4–5 июля 2026</span> • подробности позже</p>
+      <div id="hi" class="hi">Спасибо! Заявка отправлена.</div>
+      <div class="count">
+        <div class="cell"><div id="cd">—</div><div>дней</div></div>
+        <div class="cell"><div id="ch">—</div><div>часов</div></div>
+        <div class="cell"><div id="cm">—</div><div>минут</div></div>
+        <div class="cell"><div id="cs">—</div><div>секунд</div></div>
+      </div>
+    </div>
+    <div>
+      <img class="hero" src="/hero.jpg" alt="Александр и Елена" onerror="this.style.display='none'">
+    </div>
+  </div>
+
+  <!-- NEW: Мы женимся -->
+  <div class="card" style="margin-top:16px">
+    <h3>Мы женимся!</h3>
+    <div class="kit">
+      <div>
+        <p>Друзья и близкие, мы рады поделиться новостью — скоро наша свадьба. Очень ждём встречи и будем благодарны за RSVP: так нам проще всё организовать.</p>
+        <p class="note">Палитра праздника — пастельные оттенки: нежно-розовый и sage-green.</p>
+      </div>
+      <div class="note">
+        <p>Если у вас появятся вопросы по организации — напишите нам заранее. Контакты координатора добавим ближе к дате.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW: Когда и где -->
+  <div class="card" style="margin-top:12px">
+    <h3>Когда и где</h3>
+    <div class="kit">
+      <div>
+        <p><b>4–5 июля 2026</b> • Россия, <b>Минеральные Воды</b><br><span class="note">Точное место и программа — позже, вам придёт обновление.</span></p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <a class="kbtn" target="_blank" href="https://yandex.ru/maps/?text=%D0%9C%D0%B8%D0%BD%D0%B5%D1%80%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5%20%D0%92%D0%BE%D0%B4%D1%8B">Открыть в Яндекс.Картах</a>
+        <a class="kbtn" target="_blank" href="https://www.google.com/maps/search/?api=1&query=%D0%9C%D0%B8%D0%BD%D0%B5%D1%80%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5+%D0%92%D0%BE%D0%B4%D1%8B">Открыть в Google Maps</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RSVP -->
+  <div class="card" style="margin-top:12px">
+    <h3>RSVP</h3>
+    <form onsubmit="return send(event)">
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div><label>Ваше имя</label><input required id="n"></div>
+        <div><label>Email</label><input type="email" id="e" placeholder="необязательно"></div>
+      </div>
+      <div class="grid" style="grid-template-columns:1fr 1fr">
+        <div><label>Телефон</label><input id="p" placeholder="+7... (необязательно)"></div>
+        <div><label>Количество гостей</label><input type="number" min="1" max="10" id="g" value="1"></div>
+      </div>
+      <div style="margin-top:12px"><label>Комментарии</label><input id="t"></div>
+      <br><button class="btn">Отправить</button><div id="ok" class="ok"></div>
+    </form>
+  </div>
+
+  <p class="note">Фото для шапки можно положить как <code>/var/www/karmanovy/hero.jpg</code></p>
+</div>
+<script>
+(function(){
+  const qs=new URLSearchParams(location.search);
+  if(qs.get('ok')==='1'){document.getElementById('hi').style.display='block';history.replaceState(null,'',location.pathname);}
+
+  function tick(){
+    const t=${WEDDING_TS}-Date.now(); const z=Math.max(0,t);
+    const d=Math.floor(z/864e5), h=Math.floor(z%864e5/36e5), m=Math.floor(z%36e5/6e4), s=Math.floor(z%6e4/1e3);
+    cd.textContent=d; ch.textContent=h; cm.textContent=m; cs.textContent=s;
+  }
+  tick(); setInterval(tick,1000);
+
+  window.send=async function(e){
+    e.preventDefault();
+    const body={
+      name: n.value.trim(),
+      email: document.getElementById("e").value.trim(), // подстраховка
+      phone: document.getElementById('p').value.trim(),
+      guests: +g.value,
+      notes: t.value.trim()
+    };
+    const r=await fetch('/api/rsvp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){
+      const j=await r.json(); if(j&&j.id){localStorage.setItem('rsvp_id',String(j.id));}
+      localStorage.setItem('rsvp',JSON.stringify(body));
+      location.href='/?ok=1';
+    }else{
+      ok.textContent='Ошибка. Попробуйте ещё раз.';
+    }
+    return false;
+  };
+})();
+</script>`;
+
+const lk = `<!doctype html><meta charset="utf-8"><title>Личный кабинет — Свадьба Кармановых</title>
+<style>body{font-family:system-ui;background:#F6F4F2;color:#2B2B2B;margin:0}.w{max-width:960px;margin:0 auto;padding:24px}
+.card{background:#fff;border:1px solid #0001;border-radius:16px;padding:16px}
+.btn{background:#C9D7C2;border:0;padding:12px 18px;border-radius:12px;font-weight:700;cursor:pointer}
+input,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #0003}
+.grid{display:grid;gap:12px;grid-template-columns:1fr 1fr}@media(max-width:900px){.grid{grid-template-columns:1fr}}</style>
+<div class="w">
+  <div style="margin-bottom:8px"><a href="/" style="text-decoration:none;border:1px solid #0001;border-radius:999px;padding:6px 12px;display:inline-block">← На главную</a></div>
+  <h1>Личный кабинет гостя</h1>
+  <div id="msg" style="margin:8px 0;opacity:.8"></div>
+
+  <div class="card">
+    <h3>Ваши данные</h3>
+    <div class="grid">
+      <div><label>Имя</label><input id="n"></div>
+      <div><label>Email</label><input id="e"></div>
+    </div>
+    <div class="grid">
+      <div><label>Телефон</label><input id="p"></div>
+      <div><label>Гостей</label><input id="g" type="number" min="1" max="10"></div>
+    </div>
+    <div style="margin-top:12px"><label>Комментарии</label><input id="t"></div>
+    <div style="margin-top:12px"><button class="btn" onclick="saveLocal()">Сохранить у себя</button></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>Предпочтения</h3>
+    <div class="grid">
+      <div><label>Еда</label><input id="food"></div>
+      <div><label>Напитки</label><input id="drink"></div>
+    </div>
+    <div style="margin-top:12px"><label>Аллергии / ограничения</label><textarea id="all" rows="3"></textarea></div>
+    <div style="margin-top:12px"><button class="btn" onclick="savePrefs()">Отправить на сервер</button></div>
+    <div id="ok" style="margin-top:8px;color:#317031;font-weight:700"></div>
+  </div>
+</div>
+<script>
+async function load(){
+  const id=localStorage.getItem('rsvp_id'); if(!id){document.getElementById('msg').textContent='Вы ещё не отправляли RSVP.'; return;}
+  const r=await fetch('/api/me?id='+encodeURIComponent(id)); if(!r.ok){document.getElementById('msg').textContent='Не удалось загрузить данные.'; return;}
+  const j=await r.json(); if(j&&j.id){n.value=j.name||''; e.value=j.email||''; p.value=j.phone||''; g.value=j.guests||1; t.value=j.notes||''; food.value=j.food_prefs||''; drink.value=j.drink_prefs||''; all.value=j.allergies||''; document.getElementById('msg').textContent='Ваши данные из базы загружены.';}
+}
+function saveLocal(){let b={name:n.value.trim(),email:e.value.trim(),phone:p.value.trim(),guests:+g.value,notes:t.value.trim()}; localStorage.setItem('rsvp',JSON.stringify(b)); document.getElementById('msg').textContent='Сохранено локально.'; setTimeout(()=>document.getElementById('msg').textContent='',2000)}
+async function savePrefs(){
+  const id=localStorage.getItem('rsvp_id'); if(!id){ok.textContent='Сначала отправьте RSVP на главной.'; return;}
+  const body={id:+id,food:food.value.trim(),drink:drink.value.trim(),allergies:all.value.trim()};
+  const r=await fetch('/api/prefs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  ok.textContent=r.ok?'Отправлено в базу.':'Ошибка отправки.'; if(r.ok) setTimeout(()=>ok.textContent='',2000);
+}
+load();
+</script>`;
+
+function csvEscape(s){return '"'+String(s??'').replace(/"/g,'""')+'"'}
+
+async function tg(text){
+  if(!process.env.TELEGRAM_BOT_TOKEN||!process.env.TELEGRAM_CHAT_ID) return;
+  try{await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:process.env.TELEGRAM_CHAT_ID,text,disable_web_page_preview:true})});}catch{}
+}
+function sendRSVPTg(b){
+  const text=['📨 Новая заявка RSVP',`👤 Имя: ${b.name}`,b.email?`✉️ ${b.email}`:'',b.phone?`📱 ${b.phone}`:'',`👥 Гостей: ${b.guests}`,b.notes?`📝 ${b.notes}`:'',`⏱️ ${new Date().toLocaleString('ru-RU',{timeZone:'Europe/Moscow'})}`].filter(Boolean).join('\\n');
+  return tg(text);
+}
+function sendPrefsTg(id,b){
+  const text=['🧾 Обновлены предпочтения',`#ID: ${id}`,b.food?`🍽 Еда: ${b.food}`:'',b.drink?`🥂 Напитки: ${b.drink}`:'',b.allergies?`⚠️ Аллергии: ${b.allergies}`:''].filter(Boolean).join('\\n'); return tg(text);
+}
+
+const server=http.createServer((req,res)=>{
+  const {pathname,searchParams} = new URL(req.url,'http://x');
+
+  if(req.method==='GET' && pathname==='/hero.jpg'){
+    const f=path.join('/var/www/karmanovy','hero.jpg');
+    return fs.stat(f,(e,s)=>{ if(e) {res.writeHead(404);return res.end('');}
+      res.writeHead(200,{'content-type':'image/jpeg','content-length':s.size}); fs.createReadStream(f).pipe(res);
+    });
+  }
+
+  if((req.method==='GET'||req.method==='HEAD') && pathname==='/'){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});return res.end(page);}
+  if((req.method==='GET'||req.method==='HEAD') && pathname.startsWith('/lk')){res.writeHead(200,{'content-type':'text/html; charset=utf-8'});return res.end(lk);}
+
+  if(req.method==='POST' && pathname==='/api/rsvp'){
+    let d=''; req.on('data',c=>d+=c); req.on('end',async()=>{
+      try{
+        const b=JSON.parse(d||'{}');
+        const name=String(b.name||'').trim();
+        const email=String(b.email||'').trim();
+        const phone=String(b.phone||'').trim();
+        const guests=Number(b.guests||1);
+        const notes=String(b.notes||'').trim();
+        if(!name || !Number.isFinite(guests) || guests<1 || guests>20){res.writeHead(400);return res.end('{"ok":false}');}
+        const ip=(req.headers['x-real-ip']||req.socket.remoteAddress||'').toString();
+        if(!okRate(ip)){res.writeHead(429);return res.end('{"ok":false,"reason":"rate"}');}
+        const ua=req.headers['user-agent']||'';
+        const r=await pool.query('INSERT INTO rsvp(name,email,phone,guests,notes,ip,user_agent) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id,created_at',[name,email,phone,guests,notes,ip,ua]);
+        sendRSVPTg({name,email,phone,guests,notes}).catch(()=>{});
+        res.writeHead(200,{'content-type':'application/json'}); return res.end(JSON.stringify({ok:true,id:r.rows[0].id,ts:r.rows[0].created_at}));
+      }catch(e){console.error(e);res.writeHead(500);res.end('{"ok":false}');}
+    }); return;
+  }
+
+  if(req.method==='GET' && pathname==='/api/me'){
+    const id=Number(searchParams.get('id')); if(!Number.isInteger(id)){res.writeHead(400);return res.end('{"ok":false}');}
+    return pool.query('SELECT id,name,email,phone,guests,notes,food_prefs,drink_prefs,allergies FROM rsvp WHERE id=$1',[id])
+      .then(r=>{ if(!r.rows[0]){res.writeHead(404);return res.end('{"ok":false}');}
+        res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(r.rows[0])); })
+      .catch(e=>{console.error(e);res.writeHead(500);res.end('{"ok":false}');});
+  }
+
+  if(req.method==='POST' && pathname==='/api/prefs'){
+    let d=''; req.on('data',c=>d+=c); req.on('end',async()=>{
+      try{
+        const b=JSON.parse(d||'{}'); const id=Number(b.id);
+        if(!Number.isInteger(id)){res.writeHead(400);return res.end('{"ok":false}');}
+        await pool.query('UPDATE rsvp SET food_prefs=$2, drink_prefs=$3, allergies=$4 WHERE id=$1',[id,b.food||null,b.drink||null,b.allergies||null]);
+        sendPrefsTg(id,b).catch(()=>{});
+        res.writeHead(200,{'content-type':'application/json'}); return res.end('{"ok":true}');
+      }catch(e){console.error(e);res.writeHead(500);res.end('{"ok":false}');}
+    }); return;
+  }
+
+  // CSV и HTML-админка были добавлены ранее — оставляем без изменений
+
+  res.writeHead(404); res.end('not found');
+});
+server.listen(process.env.PORT||3000,()=>console.log('OK 3000'));
