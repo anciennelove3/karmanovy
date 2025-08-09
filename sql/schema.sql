@@ -1,0 +1,3 @@
+-- место для схемы БД и миграций
+-- пример:
+-- CREATE TABLE IF NOT EXISTS rsvp (...);

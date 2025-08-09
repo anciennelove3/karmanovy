@@ -1,0 +1,39 @@
+# Node / deps
+node_modules/
+npm-debug.log*
+yarn-*.log
+.pnpm-debug.log*
+
+# Logs / tmp
+logs/
+*.log
+*.tmp
+.tmp/
+temp/
+.cache/
+
+# Secrets
+.env
+config/.env
+
+# Backups / junk
+*.bak
+*.bak.*
+*.old
+.DS_Store
+Thumbs.db
+
+# Big archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+
+# IDE
+.vscode/
+.idea/
+
+# Public: игнорим всё, кроме нужных ассетов
+/public/*
+!/public/theme.css
+!/public/favicon.ico

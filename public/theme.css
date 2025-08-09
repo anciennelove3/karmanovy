@@ -1,0 +1,42 @@
+/* Палитра */
+:root{ --rose:#F7E6EB; --sage:#C9D7C2; --ink:#2B2B2B; --ghost:#00000012; }
+
+*{ box-sizing:border-box; }
+html,body{ background:#F7F7F7; color:var(--ink); margin:0; }
+.w{ max-width:1100px; margin:0 auto; padding:0 16px; }
+
+/* Навигация */
+.nav{ display:flex; gap:12px; align-items:center; margin:14px 0; }
+.pill{ display:inline-block; background:#E8EFE4; border:1px solid #0001; border-radius:999px; padding:6px 12px; font-weight:700; text-decoration:none; color:inherit; }
+
+/* Заголовок */
+h1{ text-align:center; font-size:clamp(28px,4.2vw,56px); line-height:1.1; margin:8px 0 14px; }
+
+/* Хедер: две колонки — текст слева, фото справа */
+.grid{ display:grid; gap: clamp(20px, 4vw, 40px); grid-template-columns: 1fr min(42vw,560px); align-items:center; }
+@media (max-width:980px){ .grid{ grid-template-columns:1fr; } }
+
+/* Фото справа как карточка (НЕ фон) */
+img.hero{
+  display:block;
+  width:100%; height:auto;
+  border-radius:22px;
+  box-shadow:0 14px 38px var(--ghost);
+  object-fit:cover;
+  max-height:560px;
+}
+
+/* Карточки и элементы */
+.card{ background:#fff; border:1px solid #0001; border-radius:16px; padding:16px; box-shadow:0 8px 20px var(--ghost); }
+.badge{ display:inline-block; background:#fff; color:var(--ink); padding:8px 14px; border-radius:999px; font-weight:700; box-shadow:0 4px 10px var(--ghost); }
+input,textarea,select{ width:100%; padding:10px 12px; border-radius:12px; border:1px solid #0003; background:#fff; }
+
+.btn{ background:var(--sage) !important; border:0; padding:12px 18px; border-radius:12px; font-weight:700; cursor:pointer; }
+.btn:hover{ filter:brightness(.96); }
+
+/* Счётчик плитками */
+.count{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; text-align:center; }
+.count .cell{ background:#fff; border:1px solid #0001; border-radius:16px; padding:14px 10px; box-shadow:0 6px 14px var(--ghost); min-width:120px; }
+
+/* Отступы между секциями */
+.card + .card{ margin-top:12px; }
